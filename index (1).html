@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedAI Chatbot</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f7f9fc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      color: #2b4c7e;
+      margin: 20px 0;
+      font-weight: 600;
+    }
+
+    .chat-container {
+      width: 90%;
+      max-width: 600px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-box {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      max-height: 70vh;
+    }
+
+    .message {
+      margin: 10px 0;
+      padding: 12px 16px;
+      border-radius: 10px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      max-width: 85%;
+    }
+
+    .user {
+      background: #2b4c7e;
+      color: white;
+      align-self: flex-end;
+      border-top-right-radius: 0;
+    }
+
+    .bot {
+      background: #e9eef6;
+      color: #333;
+      align-self: flex-start;
+      border-top-left-radius: 0;
+    }
+
+    .input-area {
+      display: flex;
+      border-top: 1px solid #ddd;
+    }
+
+    input {
+      flex: 1;
+      border: none;
+      padding: 14px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    button {
+      background: #2b4c7e;
+      color: white;
+      border: none;
+      padding: 14px 22px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #1d355d;
+    }
+
+    .loading {
+      text-align: center;
+      color: #777;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    /* Markdown formatting improvements */
+    .bot strong {
+      font-weight: 600;
+      color: #1d355d;
+    }
+
+    .bot ul {
+      margin: 8px 0 8px 20px;
+      padding: 0;
+    }
+
+    .bot li {
+      margin-bottom: 4px;
+    }
+
+    .bot h1, .bot h2, .bot h3 {
+      color: #2b4c7e;
+      margin-top: 10px;
+      margin-bottom: 6px;
+    }
+  </style>
+
+  <!-- ✅ Add Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <h1>💬 MedAI Progressive Chatbot</h1>
+
+  <div class="chat-container">
+    <div class="chat-box" id="chat-box"></div>
+    <div class="input-area">
+      <input type="text" id="user-input" placeholder="Type your message..." />
+      <button id="send-btn">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    let sessionId = localStorage.getItem("session_id");
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem("session_id", sessionId);
+    }
+
+    // 🔹 API endpoint (update this to your backend URL)
+    const API_URL = "https://conversational-ai-hv4u.onrender.com/chat"
+    // ✅ Append messages with Markdown rendering for bot
+    function appendMessage(text, sender) {
+      const msg = document.createElement('div');
+      msg.classList.add('message', sender);
+
+      if (sender === 'bot') {
+        msg.innerHTML = marked.parse(text);  // convert Markdown to HTML
+      } else {
+        msg.textContent = text; // keep user text plain
+      }
+
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const message = userInput.value.trim();
+      if (!message) return;
+
+      appendMessage(message, 'user');
+      userInput.value = '';
+
+      appendMessage('⏳ Thinking...', 'bot');
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: message, session_id: sessionId }),
+        });
+
+        if (!response.ok) throw new Error("API Error: " + response.status);
+
+        const data = await response.json();
+
+        // Remove "Thinking..." message
+        chatBox.lastChild.remove();
+
+        if (data.reply) {
+          appendMessage(data.reply, 'bot');
+        } else if (data.error) {
+          appendMessage("⚠️ Error: " + data.error, 'bot');
+        } else {
+          appendMessage("⚠️ Unexpected response format.", 'bot');
+        }
+
+      } catch (err) {
+        chatBox.lastChild.remove();
+        appendMessage("⚠️ Network error: " + err.message, 'bot');
+        console.error(err);
+      }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>
