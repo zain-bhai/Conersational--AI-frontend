@@ -7,6 +7,7 @@ Follow the steps below to set it up locally or deploy it on your own server.
 # Quick Start
 #1. Clone the Repository
 git clone https://github.com/zain-bhai/Conersational--AI-frontend.git
+
 cd Conersational--AI-frontend
 
 #2. Install Dependencies
